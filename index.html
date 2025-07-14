@@ -9,17 +9,20 @@
   <h1 id="status">키오스크를 시작하려면 SELECT 버튼을 눌러주세요.</h1>
 
   <script>
-    // Socket.io로 서버에서 버튼 신호 받기
-    const socket = io();
-    socket.on('button', (cmd) => {
-      handleCommand(cmd); // 아두이노에서 온 신호("NEXT", "PREV" 등)를 그대로 처리
-    });
+    // ----- 1. 웹소켓 연결 (Node.js 서버에 연결) -----
+    // ※ 반드시 new WebSocket! (io() 아님)
+    const ws = new WebSocket(`ws://${location.host}`);
+    // 서버에서 신호가 오면 handleCommand 함수로 전달
+    ws.onmessage = (event) => {
+      handleCommand(event.data.trim());
+    };
 
-    // 상태 정의
+    // ----- 2. 상태/메뉴 등 변수 선언 -----
     let state = "WAIT";
     let categoryIndex = 0;
     let menuIndex = 0;
 
+    // 카테고리 및 메뉴 구성
     const categories = ["차", "커피", "밀크티"];
     const menu = {
       "차": ["허브차", "녹차", "홍차"],
@@ -27,18 +30,24 @@
       "밀크티": ["타로", "흑당", "얼그레이"]
     };
 
-    let currentCategory = "차";
-    let cart = [];
+    let currentCategory = "차"; // 현재 선택된 카테고리
+    let cart = []; // 장바구니(선택 메뉴 저장)
 
+    // ----- 3. 음성 안내 + 화면 안내 -----
     function speak(text) {
+      // 음성 안내(브라우저 내장)
       const msg = new SpeechSynthesisUtterance(text);
       msg.lang = 'ko-KR';
       window.speechSynthesis.speak(msg);
+      // 화면에 안내문구 표시
       document.getElementById("status").innerText = text;
     }
 
+    // ----- 4. 신호 처리 함수 -----
+    // (아두이노 → 서버 → 웹 → 이 함수로 연결됨)
     function handleCommand(cmd) {
       switch(state) {
+        // --- 대기 화면 ---
         case "WAIT":
           if (cmd === "SELECT") {
             state = "CATEGORY";
@@ -47,6 +56,7 @@
           }
           break;
 
+        // --- 카테고리 선택 ---
         case "CATEGORY":
           if (cmd === "NEXT") {
             if (categoryIndex < categories.length - 1) {
@@ -71,6 +81,7 @@
           }
           break;
 
+        // --- 메뉴 선택 ---
         case "MENU":
           const currentMenu = menu[currentCategory];
           if (cmd === "NEXT") {
@@ -94,6 +105,7 @@
           }
           break;
 
+        // --- 주문 창 ---
         case "ORDER":
           if (cmd === "SELECT") {
             speak(`결제를 진행하려면 카드 버튼을 눌러주세요.`);
@@ -104,6 +116,7 @@
           }
           break;
 
+        // --- 결제 단계 ---
         case "PAYMENT":
           if (cmd === "CARD") {
             speak(`결제가 완료되었습니다. 감사합니다. 초기 화면으로 돌아갑니다.`);
@@ -114,7 +127,8 @@
       }
     }
 
-    // 테스트용 시뮬레이션 (삭제 가능)
+    // ----- 5. 키보드 시뮬레이션(테스트용, 실제 버튼 없어도 테스트 가능) -----
+    // → 실제 서비스에선 없어도 무방!
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowRight") handleCommand("NEXT");
       else if (e.key === "ArrowLeft") handleCommand("PREV");
@@ -125,4 +139,3 @@
   </script>
 </body>
 </html>
-
