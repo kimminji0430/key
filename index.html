@@ -9,6 +9,12 @@
   <h1 id="status">키오스크를 시작하려면 SELECT 버튼을 눌러주세요.</h1>
 
   <script>
+    // Socket.io로 서버에서 버튼 신호 받기
+    const socket = io();
+    socket.on('button', (cmd) => {
+      handleCommand(cmd); // 아두이노에서 온 신호("NEXT", "PREV" 등)를 그대로 처리
+    });
+
     // 상태 정의
     let state = "WAIT";
     let categoryIndex = 0;
