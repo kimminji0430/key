@@ -1,1 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>시각장애인 키오스크</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1 id="status">키오스크를 시작하려면 SELECT 버튼을 눌러주세요.</h1>
+
+  <script>
+    // 상태 정의
+    let state = "WAIT";
+    let categoryIndex = 0;
+    let menuIndex = 0;
+
+    const categories = ["차", "커피", "밀크티"];
+    const menu = {
+      "차": ["허브차", "녹차", "홍차"],
+      "커피": ["아메리카노", "라떼", "카푸치노"],
+      "밀크티": ["타로", "흑당", "얼그레이"]
+    };
+
+    let currentCategory = "차";
+    let cart = [];
+
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'ko-KR';
+      window.speechSynthesis.speak(msg);
+      document.getElementById("status").innerText = text;
+    }
+
+    function handleCommand(cmd) {
+      switch(state) {
+        case "WAIT":
+          if (cmd === "SELECT") {
+            state = "CATEGORY";
+            categoryIndex = 0;
+            speak(`${categories[categoryIndex]} 카테고리입니다. 다음 버튼으로 이동하고 선택 버튼으로 고르세요.`);
+          }
+          break;
+
+        case "CATEGORY":
+          if (cmd === "NEXT") {
+            if (categoryIndex < categories.length - 1) {
+              categoryIndex++;
+              speak(`${categories[categoryIndex]} 카테고리입니다.`);
+            } else {
+              speak(`${categories[categoryIndex]} 카테고리입니다. 마지막 카테고리입니다.`);
+            }
+          } else if (cmd === "PREV") {
+            if (categoryIndex > 0) {
+              categoryIndex--;
+              speak(`${categories[categoryIndex]} 카테고리입니다.`);
+            }
+          } else if (cmd === "SELECT") {
+            currentCategory = categories[categoryIndex];
+            menuIndex = 0;
+            state = "MENU";
+            speak(`${currentCategory} 메뉴입니다. ${menu[currentCategory][menuIndex]} 입니다.`);
+          } else if (cmd === "ORDER") {
+            state = "ORDER";
+            speak(`주문창으로 이동합니다. 결제하시려면 SELECT 버튼, 다른 메뉴를 추가하려면 NEXT 버튼을 눌러주세요.`);
+          }
+          break;
+
+        case "MENU":
+          const currentMenu = menu[currentCategory];
+          if (cmd === "NEXT") {
+            if (menuIndex < currentMenu.length - 1) {
+              menuIndex++;
+              speak(`${currentMenu[menuIndex]} 입니다.`);
+            } else {
+              speak(`${currentMenu[menuIndex]} 입니다. 마지막 메뉴입니다.`);
+            }
+          } else if (cmd === "PREV") {
+            if (menuIndex > 0) {
+              menuIndex--;
+              speak(`${currentMenu[menuIndex]} 입니다.`);
+            }
+          } else if (cmd === "SELECT") {
+            cart.push(currentMenu[menuIndex]);
+            speak(`${currentMenu[menuIndex]}가 장바구니에 담겼습니다.`);
+          } else if (cmd === "ORDER") {
+            state = "ORDER";
+            speak(`주문창으로 이동합니다. 결제하시려면 SELECT 버튼, 다른 메뉴를 추가하려면 NEXT 버튼을 눌러주세요.`);
+          }
+          break;
+
+        case "ORDER":
+          if (cmd === "SELECT") {
+            speak(`결제를 진행하려면 카드 버튼을 눌러주세요.`);
+            state = "PAYMENT";
+          } else if (cmd === "NEXT") {
+            state = "CATEGORY";
+            speak(`다시 메뉴판으로 이동합니다. ${categories[categoryIndex]} 카테고리입니다.`);
+          }
+          break;
+
+        case "PAYMENT":
+          if (cmd === "CARD") {
+            speak(`결제가 완료되었습니다. 감사합니다. 초기 화면으로 돌아갑니다.`);
+            cart = [];
+            state = "WAIT";
+          }
+          break;
+      }
+    }
+
+    // 테스트용 시뮬레이션 (삭제 가능)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") handleCommand("NEXT");
+      else if (e.key === "ArrowLeft") handleCommand("PREV");
+      else if (e.key === "Enter") handleCommand("SELECT");
+      else if (e.key === " ") handleCommand("ORDER");
+      else if (e.key.toLowerCase() === "c") handleCommand("CARD");
+    });
+  </script>
+</body>
+</html>
 
